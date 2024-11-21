@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desenho de Linhas</title>
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- CSS externo -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="controls">
+        <button id="oneStroke" class="active"><i class="fas fa-paint-brush"></i> 1 Pá</button>
+        <button id="threeStrokes"><i class="fas fa-paint-roller"></i> 3 Pás</button>
+        <button id="clearCanvas" class="clear"><i class="fas fa-eraser"></i> Limpar</button>
+        <button id="sendDrawing"><i class="fas fa-paper-plane"></i> Enviar Desenho</button>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <p>O desenho foi enviado de:</p>
+            <p id="countryName">Carregando...</p>
+            <button class="modal-button" id="closeModal">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Indicador de carregamento -->
+    <div id="loading" class="loading">Carregando...</div>
+
+    <!-- JS externo -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
