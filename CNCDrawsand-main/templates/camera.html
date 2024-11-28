@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desenho na Fila</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            width: 60%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        .video-container {
+            margin-top: 30px;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        video {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        .status-bar {
+            margin-top: 30px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+
+        .status-bar i {
+            margin-right: 10px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Desenho Enviado</h1>
+        <div class="message">
+            Seu desenho está na fila para ser processado. Enquanto isso, você pode assistir a live da CNC desenhando outros projetos!
+        </div>
+        
+        <div class="status-bar">
+            <i class="fas fa-spinner fa-spin"></i> Aguardando para iniciar o seu desenho...
+        </div>
+
+        <div class="video-container">
+            <video controls autoplay>
+                <source src="video-da-cnc.mp4" type="video/mp4">
+                Seu navegador não suporta a tag de vídeo.
+            </video>
+        </div>
+        <a href="{{ url_for('index') }}">
+            <button class="start-button">Fazer mais um desenho</button>
+        </a>
+    </div>
+</body>
+</html>
