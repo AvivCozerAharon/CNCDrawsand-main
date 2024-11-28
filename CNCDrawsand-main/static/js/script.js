@@ -58,14 +58,15 @@ function draw(event) {
     if (!isDrawing) return;
 
     if (event.key === 'a') {
-        angle -= 10;  
+        angle = 4*-80;  
     } else if (event.key === 'd') {
-        angle += 10;
+        angle =  4 *80;
     }
 
     const currentX = event.offsetX;
     const currentY = event.offsetY;
-
+    console.log(currentX);
+    console.log(currentY);
     const distance = Math.hypot(currentX - lastX, currentY - lastY);
     const steps = Math.ceil(distance / 5);
 
@@ -245,34 +246,40 @@ function stopTimer() {
     clearInterval(timer);
 }
 
-function sendDrawing() {
-    if (!canvas) {
-        alert("Canvas não encontrado!");
-        return;
-    }
-
+function sendDrawing(drawName, drawLocation) {
     const drawingData = canvas.toDataURL("image/png");
+
+    loadingElement.style.display = "block"; // Exibe carregando
 
     fetch("/submit", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({ drawingData: drawingPositions })
+        body: JSON.stringify({ 
+            drawingData: drawingPositions, 
+            draw_name: drawName, 
+            draw_location: drawLocation 
+        })
     })
-    .then(response => {
-        if (response.ok) {
-            // Se a resposta for bem-sucedida, redireciona para a página de confirmação
-            window.location.href = "/camera";  // Redireciona para a página de "submit_page"
+    .then(response => response.json())
+    .then(data => {
+        loadingElement.style.display = "none";
+        if (data.message) {
+            alert(data.message);
+            const drawingId = data.id; 
+            window.location.href = "/camera/" + drawingId;
         } else {
-            throw new Error("Erro ao enviar o desenho.");
+            throw new Error("Erro no processamento.");
         }
     })
     .catch(error => {
         console.error("Erro ao enviar o desenho:", error);
         alert("Erro ao enviar o desenho.");
+        loadingElement.style.display = "none"; 
     });
 }
+
 
 
 
@@ -280,10 +287,44 @@ canvas.addEventListener('mousedown', () => {
     if (!timer) startTimer(); 
 });
 
-sendDrawingButton.addEventListener("click", () => {
-    stopTimer(); 
-    sendDrawing();
+sendDrawingButton.addEventListener("click", async () => {
+    const drawName = prompt("Digite o nome do desenho:");
+    if (!drawName) {
+        alert("Nome do desenho é obrigatório!");
+        return;
+    }
+
+    stopTimer(); // Para o timer
+
+    // Obter localização usando geolocalização
+    const drawLocation = await getLocation();
+    sendDrawing(drawName, drawLocation);
 });
+
+
+function getLocation() {
+    return new Promise((resolve, reject) => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    
+                    fetch(`http://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lon}&apiKey=79d860e0abf140faa4d925d4bb9e9cc6`)
+                        .then((response) => response.json())
+                        .then((data) => {
+                            const location = data.features && data.features[0] && data.features[0].properties.city || 'Desconhecido';
+                            resolve(location);
+                        })
+                        .catch(() => resolve('Desconhecido'));
+                },
+                () => resolve('Desconhecido')
+            );
+        } else {
+            resolve('Desconhecido');
+        }
+    });
+}
 
 
 generateZenBackground();
