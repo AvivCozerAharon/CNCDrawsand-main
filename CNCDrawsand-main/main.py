@@ -4,6 +4,8 @@ from pymongo import MongoClient
 from datetime import datetime
 from bson.objectid import ObjectId
 import serial
+import threading
+import requests
 
 arduino = serial.Serial(port='COM28', baudrate=115200, timeout=.1) 
 client = MongoClient("localhost", 27017)
@@ -56,12 +58,28 @@ def send_to_cnc():
             {"_id": next_drawing["_id"]},
             {"$set": {"status": "done"}}
         )
+
         string_to_send = ""
-        for position in next_drawing["drawing"]:
+        for index , position in enumerate(next_drawing["drawing"]):
+            if index != 0:
+                last_position = next_drawing["drawing"][index - 1]
+                diff_x = abs(last_position['x'] - position['x'])
+                diff_y = abs(last_position['y'] - position['y'])
+                diff_relative = 1
+                if diff_x < diff_relative and diff_y < diff_relative:
+                    continue
             if position['x'] is not None and position['y'] is not None:
-                string_to_send += f"{position['x']:.1f},{position['y']:.1f} "
+                if position['size'] == 1:
+                    shovel_size = 'SINGLE'
+                elif position['size'] == 3:
+                    shovel_size = 'THREE'
+                else:
+                    shovel_size = 'OFF'
+                string_to_send += f"{position['x']:.1f},{position['y']:.1f},{shovel_size} "
         string_to_send += "\n"
         print(string_to_send)
+        print("\n\n\n\n\n")
+
         arduino.write(string_to_send.encode())
         arduino.write(b'positions')
         return jsonify({"message": "Desenho enviado com sucesso!", "id": str(next_drawing["_id"]), "name": str(next_drawing['name']),"location": str(next_drawing['location'])}), 200
@@ -106,6 +124,32 @@ def queue_position(drawing_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-
+def read_from_arduino():
+    """
+    Função que roda em um thread separado para ler dados do Arduino.
+    Ela deve verificar periodicamente o status ou a resposta do Arduino
+    sem bloquear o servidor Flask.
+    """
+    while True:
+        try:
+            data = arduino.readline().decode('utf-8').strip()
+            
+            #data = "finished"  
+            
+            if data == "finished":
+                print("Arduino sinalizou que terminou o desenho!")
+                response = requests.get('http://127.0.0.1:5000/send_to_cnc')  
+                if response.status_code == 200:
+                    print("Desenho enviado para o CNC com sucesso!")
+                else:
+                    print("Falha ao enviar desenho para o CNC.")       
+        except Exception as e:
+            print(f"Erro ao ler do Arduino: {e}")
+        
+        time.sleep(1)
 if __name__ == '__main__':
+    arduino_thread = threading.Thread(target=read_from_arduino)
+    arduino_thread.daemon = True 
+    arduino_thread.start()
+
     app.run(port=5000, debug=False)
