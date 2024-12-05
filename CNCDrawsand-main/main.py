@@ -1,9 +1,11 @@
+import time
 from flask import Flask, render_template, request, jsonify
 from pymongo import MongoClient
 from datetime import datetime
 from bson.objectid import ObjectId
+import serial
 
-# Configuração do banco
+arduino = serial.Serial(port='COM28', baudrate=115200, timeout=.1) 
 client = MongoClient("localhost", 27017)
 database = client["CNCDrawing"]
 collection = database["drawings"]
@@ -34,7 +36,6 @@ def submit():
         "status": "queued"  
     }
 
-    # Insere no banco
     result = collection.insert_one(drawing_data)
     return jsonify({"message": "Desenho enviado com sucesso!", "id": str(result.inserted_id)}), 201
 
@@ -45,7 +46,7 @@ def send_to_cnc():
         {"$set": {"status": "processing"}},  
         sort=[("created_at", 1)],  
         return_document=True  
-    )
+    )    
 
     if not next_drawing:
         return jsonify({"message": "Nenhum desenho na fila para enviar."}), 404
@@ -55,9 +56,16 @@ def send_to_cnc():
             {"_id": next_drawing["_id"]},
             {"$set": {"status": "done"}}
         )
+        string_to_send = ""
+        for position in next_drawing["drawing"]:
+            if position['x'] is not None and position['y'] is not None:
+                string_to_send += f"{position['x']:.1f},{position['y']:.1f} "
+        string_to_send += "\n"
+        print(string_to_send)
+        arduino.write(string_to_send.encode())
+        arduino.write(b'positions')
         return jsonify({"message": "Desenho enviado com sucesso!", "id": str(next_drawing["_id"]), "name": str(next_drawing['name']),"location": str(next_drawing['location'])}), 200
     except Exception as e:
-        # Caso falhe, reverte o status para 'queued'
         collection.update_one(
             {"_id": next_drawing["_id"]},
             {"$set": {"status": "queued"}}
@@ -67,13 +75,11 @@ def send_to_cnc():
 @app.route('/camera/<drawing_id>')
 def camera_page(drawing_id):
     try:
-        # Encontra o desenho pelo ID
         current_drawing = collection.find_one({"_id": ObjectId(drawing_id)})
 
         if not current_drawing:
             return jsonify({"error": "Desenho não encontrado"}), 404
 
-        # Conta quantos desenhos estão na frente
         position = collection.count_documents({
             "status": "queued",
             "created_at": {"$lt": current_drawing["created_at"]}
@@ -86,13 +92,11 @@ def camera_page(drawing_id):
 @app.route('/queue_position/<drawing_id>', methods=["GET"])
 def queue_position(drawing_id):
     try:
-        # Encontra o desenho pelo ID
         current_drawing = collection.find_one({"_id": ObjectId(drawing_id)})
 
         if not current_drawing:
             return jsonify({"error": "Desenho não encontrado"}), 404
 
-        # Conta quantos desenhos estão na frente
         position = collection.count_documents({
             "status": "queued",
             "created_at": {"$lt": current_drawing["created_at"]}
@@ -104,4 +108,4 @@ def queue_position(drawing_id):
     
 
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+    app.run(port=5000, debug=False)
