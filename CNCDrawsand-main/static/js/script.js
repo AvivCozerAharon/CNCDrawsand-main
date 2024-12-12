@@ -63,8 +63,8 @@ function draw(event) {
         angle =  4 *80;
     }
 
-    const currentX = event.offsetX;
-    const currentY = event.offsetY;
+    const currentX = event.clientX;
+    const currentY = event.clientY;
     console.log(currentX);
     console.log(currentY);
     const distance = Math.hypot(currentX - lastX, currentY - lastY);
@@ -74,7 +74,7 @@ function draw(event) {
         const interpolatedX = lastX + (currentX - lastX) * (i / steps);
         const interpolatedY = lastY + (currentY - lastY) * (i / steps);
 
-        drawingPositions.push({ x: interpolatedX, y: interpolatedY, size: brushConfig, angle: angle });
+        drawingPositions.push({ x: currentX, y: currentY, size: brushConfig, angle: angle });
 
         // Salva cada posição no histórico de desenho
         drawingHistory.push({ action: 'draw', x: interpolatedX, y: interpolatedY });
